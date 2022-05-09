@@ -19,7 +19,7 @@ type UUID [16]byte
 // A source is a UUID generator that reads random values from a randutil.LockedRand.
 // It is safe to use from multiple goroutines.
 type source struct {
-	random *randutil.LockedRand
+	random io.Reader
 }
 
 // new returns a random UUIDv4 with bytes read from the source's random number generator.
@@ -39,14 +39,14 @@ func (s *source) new() (UUID, error) {
 // newGlobalSource returns a source that uses a "math/rand" pseudo-random number generator seeded
 // with a cryptographically-secure random number. It is intended to be used to initialize the
 // package-global UUID generator.
-func newGlobalSource() *source {
+func newGlobalSource(r io.Reader) *source {
 	return &source{
-		random: randutil.NewLockedRand(rand.NewSource(randutil.CryptoSeed())),
+		random: r,
 	}
 }
 
 // globalSource is a package-global pseudo-random UUID generator.
-var globalSource = newGlobalSource()
+var globalSource = newGlobalSource(randutil.NewLockedRand(rand.NewSource(randutil.CryptoSeed())))
 
 // New returns a random UUIDv4. It uses a "math/rand" pseudo-random number generator seeded with a
 // cryptographically-secure random number at package initialization.
