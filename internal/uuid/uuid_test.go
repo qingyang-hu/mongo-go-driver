@@ -27,24 +27,118 @@ func (r *randReader) Read(b []byte) (n int, err error) {
 	return crand.Read(b)
 }
 
-type LockedRandUUID struct {
-	mu sync.Mutex
-}
-
-func (l *LockedRandUUID) new() (uuid.UUID, error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	return uuid.NewRandom()
-}
-
 func TestNew(t *testing.T) {
-	m := make(map[UUID]bool)
-	for i := 1; i < 1000000; i++ {
-		uuid, err := New()
-		require.NoError(t, err, "New error")
-		require.False(t, m[uuid], "New returned a duplicate UUID %v", uuid)
-		m[uuid] = true
-	}
+	t.Run("math rand", func(t *testing.T) {
+		uuids := new(sync.Map)
+		var wg sync.WaitGroup
+		for i := 1; i < 1000; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				s := newGlobalSource(randutil.NewLockedRand(mrand.NewSource(randutil.CryptoSeed())))
+				uuid, err := s.new()
+				require.NoError(t, err, "new() error")
+				_, ok := uuids.Load(uuid)
+				require.Falsef(t, ok, "New returned a duplicate UUID on iteration %d: %v", i, uuid)
+				uuids.Store(uuid, true)
+			}(i)
+		}
+		wg.Wait()
+	})
+	t.Run("crypto rand", func(t *testing.T) {
+		uuids := new(sync.Map)
+		var wg sync.WaitGroup
+		for i := 1; i < 1000000; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				s := newGlobalSource(new(randReader))
+				uuid, err := s.new()
+				require.NoError(t, err, "new() error")
+				_, ok := uuids.Load(uuid)
+				require.Falsef(t, ok, "New returned a duplicate UUID on iteration %d: %v", i, uuid)
+				uuids.Store(uuid, true)
+			}(i)
+		}
+		wg.Wait()
+	})
+	t.Run("exp rand", func(t *testing.T) {
+		src := new(xrand.LockedSource)
+		src.Seed((uint64)(randutil.CryptoSeed()))
+		uuids := new(sync.Map)
+		var wg sync.WaitGroup
+		for i := 1; i < 1000000; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				s := newGlobalSource(xrand.New(src))
+				uuid, err := s.new()
+				require.NoError(t, err, "new() error")
+				_, ok := uuids.Load(uuid)
+				require.Falsef(t, ok, "New returned a duplicate UUID on iteration %d: %v", i, uuid)
+				uuids.Store(uuid, true)
+			}(i)
+		}
+		wg.Wait()
+	})
+	t.Run("mt19937", func(t *testing.T) {
+		uuids := new(sync.Map)
+		var wg sync.WaitGroup
+		for i := 1; i < 1000000; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				ins := mt19937.New()
+				ins.Seed(randutil.CryptoSeed())
+				s := newGlobalSource(ins)
+				uuid, err := s.new()
+				require.NoError(t, err, "new() error")
+				_, ok := uuids.Load(uuid)
+				require.Falsef(t, ok, "New returned a duplicate UUID on iteration %d: %v", i, uuid)
+				uuids.Store(uuid, true)
+			}(i)
+		}
+		wg.Wait()
+	})
+	t.Run("pooled uuid", func(t *testing.T) {
+		uuid.EnableRandPool()
+		defer uuid.DisableRandPool()
+		uuids := new(sync.Map)
+		var wg sync.WaitGroup
+		for i := 1; i < 1000000; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				uuid, err := uuid.NewRandom()
+				require.NoError(t, err, "new() error")
+				_, ok := uuids.Load(uuid)
+				require.Falsef(t, ok, "New returned a duplicate UUID on iteration %d: %v", i, uuid)
+				uuids.Store(uuid, true)
+			}(i)
+		}
+		wg.Wait()
+	})
+	t.Run("pooled xrand", func(t *testing.T) {
+		src := new(xrand.LockedSource)
+		src.Seed((uint64)(randutil.CryptoSeed()))
+		uuid.SetRand(xrand.New(src))
+		uuid.EnableRandPool()
+		defer uuid.DisableRandPool()
+		uuids := new(sync.Map)
+		var wg sync.WaitGroup
+		for i := 1; i < 1000000; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				uuid, err := uuid.NewRandom()
+				require.NoError(t, err, "new() error")
+				_, ok := uuids.Load(uuid)
+				require.Falsef(t, ok, "New returned a duplicate UUID on iteration %d: %v", i, uuid)
+				uuids.Store(uuid, true)
+			}(i)
+		}
+		wg.Wait()
+	})
 }
 
 // GODRIVER-2349
@@ -69,15 +163,21 @@ func TestGlobalSource(t *testing.T) {
 		// Read 1,000 UUIDs from each source and assert that there is never a duplicate value, either
 		// from the same source or from separate sources.
 		const iterations = 1000
-		uuids := make(map[UUID]bool, len(sources)*iterations)
-		for i := 0; i < iterations; i++ {
-			for j, s := range sources {
-				uuid, err := s.new()
-				require.NoError(t, err, "new() error")
-				require.Falsef(t, uuids[uuid], "source %d returned a duplicate UUID on iteration %d: %v", j, i, uuid)
-				uuids[uuid] = true
-			}
+		uuids := new(sync.Map)
+		for j, s := range sources {
+			wg.Add(1)
+			go func(j int, s *source) {
+				defer wg.Done()
+				for i := 0; i < iterations; i++ {
+					uuid, err := s.new()
+					require.NoError(t, err, "new() error")
+					_, ok := uuids.Load(uuid)
+					require.Falsef(t, ok, "source %d returned a duplicate UUID on iteration %d: %v", j, i, uuid)
+					uuids.Store(uuid, true)
+				}
+			}(j, s)
 		}
+		wg.Wait()
 	})
 	t.Run("crypto rand", func(t *testing.T) {
 		// Create a slice of 1,000 sources and initialize them in 1,000 separate goroutines. The goal is
@@ -97,27 +197,35 @@ func TestGlobalSource(t *testing.T) {
 		// Read 1,000 UUIDs from each source and assert that there is never a duplicate value, either
 		// from the same source or from separate sources.
 		const iterations = 1000
-		uuids := make(map[UUID]bool, len(sources)*iterations)
-		for i := 0; i < iterations; i++ {
-			for j, s := range sources {
-				uuid, err := s.new()
-				require.NoError(t, err, "new() error")
-				require.Falsef(t, uuids[uuid], "source %d returned a duplicate UUID on iteration %d: %v", j, i, uuid)
-				uuids[uuid] = true
-			}
+		uuids := new(sync.Map)
+		for j, s := range sources {
+			wg.Add(1)
+			go func(j int, s *source) {
+				defer wg.Done()
+				for i := 0; i < iterations; i++ {
+					uuid, err := s.new()
+					require.NoError(t, err, "new() error")
+					_, ok := uuids.Load(uuid)
+					require.Falsef(t, ok, "source %d returned a duplicate UUID on iteration %d: %v", j, i, uuid)
+					uuids.Store(uuid, true)
+				}
+			}(j, s)
 		}
+		wg.Wait()
 	})
 	t.Run("exp rand", func(t *testing.T) {
 		// Create a slice of 1,000 sources and initialize them in 1,000 separate goroutines. The goal is
 		// to emulate many separate Go driver processes starting at the same time and initializing the
 		// uuid package at the same time.
+		src := new(xrand.LockedSource)
+		src.Seed((uint64)(randutil.CryptoSeed()))
 		sources := make([]*source, 1000)
 		var wg sync.WaitGroup
 		for i := range sources {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
-				sources[i] = newGlobalSource(xrand.New(xrand.NewSource((uint64)(randutil.CryptoSeed()))))
+				sources[i] = newGlobalSource(xrand.New(src))
 			}(i)
 		}
 		wg.Wait()
@@ -125,15 +233,21 @@ func TestGlobalSource(t *testing.T) {
 		// Read 1,000 UUIDs from each source and assert that there is never a duplicate value, either
 		// from the same source or from separate sources.
 		const iterations = 1000
-		uuids := make(map[UUID]bool, len(sources)*iterations)
-		for i := 0; i < iterations; i++ {
-			for j, s := range sources {
-				uuid, err := s.new()
-				require.NoError(t, err, "new() error")
-				require.Falsef(t, uuids[uuid], "source %d returned a duplicate UUID on iteration %d: %v", j, i, uuid)
-				uuids[uuid] = true
-			}
+		uuids := new(sync.Map)
+		for j, s := range sources {
+			wg.Add(1)
+			go func(j int, s *source) {
+				defer wg.Done()
+				for i := 0; i < iterations; i++ {
+					uuid, err := s.new()
+					require.NoError(t, err, "new() error")
+					_, ok := uuids.Load(uuid)
+					require.Falsef(t, ok, "source %d returned a duplicate UUID on iteration %d: %v", j, i, uuid)
+					uuids.Store(uuid, true)
+				}
+			}(j, s)
 		}
+		wg.Wait()
 	})
 	t.Run("mt19937", func(t *testing.T) {
 		// Create a slice of 1,000 sources and initialize them in 1,000 separate goroutines. The goal is
@@ -155,42 +269,91 @@ func TestGlobalSource(t *testing.T) {
 		// Read 1,000 UUIDs from each source and assert that there is never a duplicate value, either
 		// from the same source or from separate sources.
 		const iterations = 1000
-		uuids := make(map[UUID]bool, len(sources)*iterations)
-		for i := 0; i < iterations; i++ {
-			for j, s := range sources {
-				uuid, err := s.new()
-				require.NoError(t, err, "new() error")
-				require.Falsef(t, uuids[uuid], "source %d returned a duplicate UUID on iteration %d: %v", j, i, uuid)
-				uuids[uuid] = true
-			}
+		uuids := new(sync.Map)
+		for j, s := range sources {
+			wg.Add(1)
+			go func(j int, s *source) {
+				defer wg.Done()
+				for i := 0; i < iterations; i++ {
+					uuid, err := s.new()
+					require.NoError(t, err, "new() error")
+					_, ok := uuids.Load(uuid)
+					require.Falsef(t, ok, "source %d returned a duplicate UUID on iteration %d: %v", j, i, uuid)
+					uuids.Store(uuid, true)
+				}
+			}(j, s)
 		}
+		wg.Wait()
 	})
 	t.Run("uuid", func(t *testing.T) {
 		// Read 1,000,000 UUIDs from each source and assert that there is never a duplicate value, either
 		// from the same source or from separate sources.
-		const iterations = 1000 * 1000
-		uuids := make(map[uuid.UUID]bool, iterations)
-		for i := 0; i < iterations; i++ {
-			uuid, err := uuid.NewRandom()
-			require.NoError(t, err, "uuid.NewRandom() error")
-			require.Falsef(t, uuids[uuid], "returned a duplicate UUID on iteration %d: %v", i, uuid)
-			uuids[uuid] = true
+		var wg sync.WaitGroup
+		const iterations = 1000
+		uuids := new(sync.Map)
+		for j := 0; j < iterations; j++ {
+			wg.Add(1)
+			go func(j int) {
+				defer wg.Done()
+				for i := 0; i < iterations; i++ {
+					uuid, err := uuid.NewRandom()
+					require.NoError(t, err, "new() error")
+					_, ok := uuids.Load(uuid)
+					require.Falsef(t, ok, "source %d returned a duplicate UUID on iteration %d: %v", j, i, uuid)
+					uuids.Store(uuid, true)
+				}
+			}(j)
 		}
+		wg.Wait()
 	})
 	t.Run("pooled uuid", func(t *testing.T) {
 		// Read 1,000,000 UUIDs from each source and assert that there is never a duplicate value, either
 		// from the same source or from separate sources.
 		uuid.EnableRandPool()
 		defer uuid.DisableRandPool()
-		var s LockedRandUUID
-		const iterations = 1000 * 1000
-		uuids := make(map[uuid.UUID]bool, iterations)
-		for i := 0; i < iterations; i++ {
-			uuid, err := s.new()
-			require.NoError(t, err, "uuid.NewRandom() error")
-			require.Falsef(t, uuids[uuid], "returned a duplicate UUID on iteration %d: %v", i, uuid)
-			uuids[uuid] = true
+		var wg sync.WaitGroup
+		const iterations = 1000
+		uuids := new(sync.Map)
+		for j := 0; j < iterations; j++ {
+			wg.Add(1)
+			go func(j int) {
+				defer wg.Done()
+				for i := 0; i < iterations; i++ {
+					uuid, err := uuid.NewRandom()
+					require.NoError(t, err, "new() error")
+					_, ok := uuids.Load(uuid)
+					require.Falsef(t, ok, "source %d returned a duplicate UUID on iteration %d: %v", j, i, uuid)
+					uuids.Store(uuid, true)
+				}
+			}(j)
 		}
+		wg.Wait()
+	})
+	t.Run("pooled xrand", func(t *testing.T) {
+		// Read 1,000,000 UUIDs from each source and assert that there is never a duplicate value, either
+		// from the same source or from separate sources.
+		src := new(xrand.LockedSource)
+		src.Seed((uint64)(randutil.CryptoSeed()))
+		uuid.SetRand(xrand.New(src))
+		uuid.EnableRandPool()
+		defer uuid.DisableRandPool()
+		var wg sync.WaitGroup
+		const iterations = 1000
+		uuids := new(sync.Map)
+		for j := 0; j < iterations; j++ {
+			wg.Add(1)
+			go func(j int) {
+				defer wg.Done()
+				for i := 0; i < iterations; i++ {
+					uuid, err := uuid.NewRandom()
+					require.NoError(t, err, "new() error")
+					_, ok := uuids.Load(uuid)
+					require.Falsef(t, ok, "source %d returned a duplicate UUID on iteration %d: %v", j, i, uuid)
+					uuids.Store(uuid, true)
+				}
+			}(j)
+		}
+		wg.Wait()
 	})
 }
 
@@ -208,7 +371,9 @@ func BenchmarkUuidGeneration(b *testing.B) {
 		}
 	})
 	b.Run("exp rand", func(b *testing.B) {
-		s := newGlobalSource(xrand.New(xrand.NewSource((uint64)(randutil.CryptoSeed()))))
+		source := new(xrand.LockedSource)
+		source.Seed((uint64)(randutil.CryptoSeed()))
+		s := newGlobalSource(xrand.New(source))
 		for i := 0; i < b.N; i++ {
 			s.new()
 		}
@@ -229,9 +394,18 @@ func BenchmarkUuidGeneration(b *testing.B) {
 	b.Run("pooled uuid", func(b *testing.B) {
 		uuid.EnableRandPool()
 		defer uuid.DisableRandPool()
-		var s LockedRandUUID
 		for i := 0; i < b.N; i++ {
-			s.new()
+			uuid.NewRandom()
+		}
+	})
+	b.Run("pooled xrand", func(b *testing.B) {
+		src := new(xrand.LockedSource)
+		src.Seed((uint64)(randutil.CryptoSeed()))
+		uuid.SetRand(xrand.New(src))
+		uuid.EnableRandPool()
+		defer uuid.DisableRandPool()
+		for i := 0; i < b.N; i++ {
+			uuid.NewRandom()
 		}
 	})
 }
