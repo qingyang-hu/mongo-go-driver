@@ -508,6 +508,20 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if moreToCome {
 				roundTrip = op.moreToComeRoundTrip
 			}
+
+			{
+				idx, doc := bsoncore.AppendDocumentStart(nil)
+				doc, err := op.CommandFn(doc, desc)
+				if err != nil {
+					panic(err)
+				}
+				doc, err = bsoncore.AppendDocumentEnd(doc, idx)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Printf("Operation.Execute(\n\t%+v,\n\t%v\n)\n\n", desc.Server, bson.Raw(doc))
+			}
+
 			res, err = roundTrip(ctx, conn, wm)
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
