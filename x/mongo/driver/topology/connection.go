@@ -133,6 +133,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	if !atomic.CompareAndSwapInt64(&c.state, connInitialized, connConnected) {
 		return nil
 	}
+	fmt.Printf("connection.connect(%+v)\n\n", c.addr)
 
 	defer close(c.connectDone)
 

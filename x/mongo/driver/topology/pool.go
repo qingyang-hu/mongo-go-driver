@@ -377,6 +377,7 @@ func (p *pool) unpinConnectionFromTransaction() {
 // ready, checkOut returns an error.
 // Based partially on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1324
 func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
+	fmt.Printf("pool.checkOut()\n\n")
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
 			Type:    event.GetStarted,
@@ -455,6 +456,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				ConnectionID: w.conn.poolID,
 			})
 		}
+		fmt.Printf("pool.checkOut(): Returned idle connection\n\n")
 		return w.conn, nil
 	}
 
@@ -484,6 +486,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				ConnectionID: w.conn.poolID,
 			})
 		}
+		fmt.Printf("pool.checkOut(): Returned new connection\n\n")
 		return w.conn, nil
 	case <-ctx.Done():
 		if p.monitor != nil {
@@ -826,6 +829,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		if !ok {
 			continue
 		}
+		fmt.Printf("pool.createConnections(): Created new connection\n\n")
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{

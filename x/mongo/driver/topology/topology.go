@@ -415,6 +415,8 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 			if server == nil {
 				continue
 			}
+
+			fmt.Printf("Topology.SelectServer(%+v)\n\n", server)
 			return server, nil
 		}
 

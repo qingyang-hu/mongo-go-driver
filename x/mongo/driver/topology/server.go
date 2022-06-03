@@ -260,6 +260,7 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 	// requests are included in the operation count, including those in the wait queue. If we got an
 	// error instead of a connection, immediately decrement the operation count.
 	atomic.AddInt64(&s.operationCount, 1)
+	fmt.Printf("Server.Connection(%+v)\n\n", s.address)
 	conn, err := s.pool.checkOut(ctx)
 	if err != nil {
 		atomic.AddInt64(&s.operationCount, -1)

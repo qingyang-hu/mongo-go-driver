@@ -336,6 +336,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	opts ...*options.InsertOneOptions) (*InsertOneResult, error) {
+	fmt.Printf("Collection.InsertOne(%+v)\n\n", document)
 
 	ioOpts := options.MergeInsertOneOptions(opts...)
 	imOpts := options.InsertMany()

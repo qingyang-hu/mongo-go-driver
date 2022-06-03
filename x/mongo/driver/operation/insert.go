@@ -83,6 +83,8 @@ func (i *Insert) processResponse(info driver.ResponseInfo) error {
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.
 func (i *Insert) Execute(ctx context.Context) error {
+	fmt.Printf("Insert.Execute(%v)\n\n", i.documents)
+
 	if i.deployment == nil {
 		return errors.New("the Insert operation must have a Deployment set before Execute can be called")
 	}
