@@ -90,7 +90,7 @@ func getEncoder(
 	opts *options.BSONOptions,
 	reg *bsoncodec.Registry,
 ) (*bson.Encoder, error) {
-	vw := bvwPool.Get(w)
+	vw := bsonrw.NewValueWriter(w)
 	enc, err := bson.NewEncoder(vw)
 	if err != nil {
 		return nil, err

@@ -266,7 +266,7 @@ func MarshalValueAppendWithContext(ec bsoncodec.EncodeContext, dst []byte, val i
 	// get a ValueWriter configured to write to dst
 	sw := new(bsonrw.SliceWriter)
 	*sw = dst
-	vwFlusher := bvwPool.GetAtModeElement(sw)
+	vwFlusher := bsonrw.NewValueWriterAtModeElement(sw)
 
 	// get an Encoder and encode the value
 	enc := encPool.Get().(*Encoder)

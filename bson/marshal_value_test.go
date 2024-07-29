@@ -12,7 +12,9 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 func TestMarshalValue(t *testing.T) {
@@ -112,6 +114,57 @@ func TestMarshalValue(t *testing.T) {
 			})
 		}
 	})
+}
+
+func BenchmarkMarshalValueAppendWithContext(b *testing.B) {
+	var (
+		oid           = primitive.NewObjectID()
+		regex         = primitive.Regex{Pattern: "pattern", Options: "imx"}
+		dbPointer     = primitive.DBPointer{DB: "db", Pointer: primitive.NewObjectID()}
+		codeWithScope = primitive.CodeWithScope{Code: "code", Scope: D{{"a", "b"}}}
+		decimal128    = primitive.NewDecimal128(5, 10)
+		structTest    = marshalValueStruct{Foo: 10}
+	)
+	idx, scopeCore := bsoncore.AppendDocumentStart(nil)
+	scopeCore = bsoncore.AppendStringElement(scopeCore, "a", "b")
+	scopeCore, _ = bsoncore.AppendDocumentEnd(scopeCore, idx)
+	structCore, _ := Marshal(structTest)
+
+	marshalValueTestCases := []marshalValueTestCase{
+		{"double", 3.14, bsontype.Double, bsoncore.AppendDouble(nil, 3.14)},
+		{"string", "hello world", bsontype.String, bsoncore.AppendString(nil, "hello world")},
+		{"binary", primitive.Binary{1, []byte{1, 2}}, bsontype.Binary, bsoncore.AppendBinary(nil, 1, []byte{1, 2})},
+		{"undefined", primitive.Undefined{}, bsontype.Undefined, []byte{}},
+		{"object id", oid, bsontype.ObjectID, bsoncore.AppendObjectID(nil, oid)},
+		{"boolean", true, bsontype.Boolean, bsoncore.AppendBoolean(nil, true)},
+		{"datetime", primitive.DateTime(5), bsontype.DateTime, bsoncore.AppendDateTime(nil, 5)},
+		{"null", primitive.Null{}, bsontype.Null, []byte{}},
+		{"regex", regex, bsontype.Regex, bsoncore.AppendRegex(nil, regex.Pattern, regex.Options)},
+		{"dbpointer", dbPointer, bsontype.DBPointer, bsoncore.AppendDBPointer(nil, dbPointer.DB, dbPointer.Pointer)},
+		{"javascript", primitive.JavaScript("js"), bsontype.JavaScript, bsoncore.AppendJavaScript(nil, "js")},
+		{"symbol", primitive.Symbol("symbol"), bsontype.Symbol, bsoncore.AppendSymbol(nil, "symbol")},
+		{"code with scope", codeWithScope, bsontype.CodeWithScope, bsoncore.AppendCodeWithScope(nil, "code", scopeCore)},
+		{"int32", 5, bsontype.Int32, bsoncore.AppendInt32(nil, 5)},
+		{"int64", int64(5), bsontype.Int64, bsoncore.AppendInt64(nil, 5)},
+		{"timestamp", primitive.Timestamp{T: 1, I: 5}, bsontype.Timestamp, bsoncore.AppendTimestamp(nil, 1, 5)},
+		{"decimal128", decimal128, bsontype.Decimal128, bsoncore.AppendDecimal128(nil, decimal128)},
+		{"min key", primitive.MinKey{}, bsontype.MinKey, []byte{}},
+		{"max key", primitive.MaxKey{}, bsontype.MaxKey, []byte{}},
+		{"struct", structTest, bsontype.EmbeddedDocument, structCore},
+		{"D", D{{"foo", int32(10)}}, bsontype.EmbeddedDocument, structCore},
+		{"M", M{"foo": int32(10)}, bsontype.EmbeddedDocument, structCore},
+		{"ValueMarshaler", marshalValueMarshaler{Foo: 10}, bsontype.Int32, bsoncore.AppendInt32(nil, 10)},
+	}
+
+	ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
+	for n := 0; n < b.N; n++ {
+		for _, tc := range marshalValueTestCases {
+			_, _, err := MarshalValueAppendWithContext(ec, nil, tc.val)
+			if err != nil {
+				b.Fatal()
+			}
+		}
+	}
 }
 
 func compareMarshalValueResults(t *testing.T, tc marshalValueTestCase, gotType bsontype.Type, gotBytes []byte) {

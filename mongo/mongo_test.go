@@ -9,6 +9,7 @@ package mongo
 import (
 	"errors"
 	"fmt"
+	"io"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -608,6 +609,15 @@ func TestMarshalValue(t *testing.T) {
 			assert.EqualBSON(t, tc.want, got)
 			assert.Equal(t, tc.wantErr, err, "expected and actual error do not match")
 		})
+	}
+}
+
+func BenchmarkGetEncoder(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		_, err := getEncoder(io.Discard, nil, nil)
+		if err != nil {
+			b.Fatal()
+		}
 	}
 }
 

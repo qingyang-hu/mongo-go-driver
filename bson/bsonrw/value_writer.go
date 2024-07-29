@@ -77,6 +77,24 @@ func (bvwp *BSONValueWriterPool) GetAtModeElement(w io.Writer) ValueWriterFlushe
 	return vw
 }
 
+// NewValueWriter initialize a BSON ValueWriter
+func NewValueWriter(w io.Writer) ValueWriter {
+	vw := new(valueWriter)
+
+	// TODO: Having to call reset here with the same buffer doesn't really make sense.
+	vw.reset(vw.buf)
+	vw.buf = vw.buf[:0]
+	vw.w = w
+	return vw
+}
+
+// NewValueWriterAtModeElement initialize a BSON ValueWriter
+func NewValueWriterAtModeElement(w io.Writer) ValueWriterFlusher {
+	vw := NewValueWriter(w).(*valueWriter)
+	vw.push(mElement)
+	return vw
+}
+
 // Put inserts a ValueWriter into the pool. If the ValueWriter is not a BSON ValueWriter, nothing
 // happens and ok will be false.
 //
