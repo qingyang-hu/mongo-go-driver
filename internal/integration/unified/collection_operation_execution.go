@@ -854,6 +854,8 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 			opts.SetSort(val.Document())
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndDelete option %q", key)
 		}
@@ -936,6 +938,8 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 			opts.SetSort(val.Document())
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndReplace option %q", key)
 		}
@@ -1028,6 +1032,8 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 			}
 		case "upsert":
 			opts.SetUpsert(val.Boolean())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized findOneAndUpdate option %q", key)
 		}

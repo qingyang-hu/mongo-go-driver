@@ -1519,6 +1519,9 @@ func (coll *Collection) find(
 		}
 		op.Sort(sort)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -1552,6 +1555,7 @@ func newFindArgsFromFindOneArgs(args *options.FindOneOptions) *options.FindOptio
 		v.ShowRecordID = args.ShowRecordID
 		v.Skip = args.Skip
 		v.Sort = args.Sort
+		v.RawData = args.RawData
 	}
 	return v
 }
@@ -1714,6 +1718,9 @@ func (coll *Collection) FindOneAndDelete(
 		}
 		op = op.Let(let)
 	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
+	}
 
 	return coll.findAndModify(ctx, op)
 }
@@ -1810,6 +1817,9 @@ func (coll *Collection) FindOneAndReplace(
 			return &SingleResult{err: err}
 		}
 		op = op.Let(let)
+	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
 	}
 
 	return coll.findAndModify(ctx, op)
@@ -1919,6 +1929,9 @@ func (coll *Collection) FindOneAndUpdate(
 			return &SingleResult{err: err}
 		}
 		op = op.Let(let)
+	}
+	if args.RawData != nil {
+		op = op.RawData(*args.RawData)
 	}
 
 	return coll.findAndModify(ctx, op)
