@@ -127,6 +127,8 @@ func executeBulkWrite(ctx context.Context, operation *operation) (*operationResu
 			}
 		case "let":
 			opts.SetLet(val.Document())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized bulkWrite option %q", key)
 		}

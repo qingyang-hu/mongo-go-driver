@@ -244,6 +244,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 		selector:                 selector,
 		writeConcern:             wc,
 		let:                      args.Let,
+		rawData:                  args.RawData,
 	}
 
 	err = op.execute(ctx)
