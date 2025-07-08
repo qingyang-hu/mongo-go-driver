@@ -1369,7 +1369,10 @@ func executeReplaceOne(ctx context.Context, operation *operation) (*operationRes
 		case "let":
 			opts.SetLet(val.Document())
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalReplaceOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized replaceOne option %q", key)
 		}

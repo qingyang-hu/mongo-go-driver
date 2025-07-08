@@ -701,8 +701,10 @@ func (coll *Collection) updateOrReplace(
 		}
 		op = op.Comment(comment)
 	}
-	if args.RawData != nil {
-		op = op.RawData(*args.RawData)
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 	retry := driver.RetryNone
 	// retryable writes are only enabled updateOne/replaceOne operations
@@ -798,7 +800,7 @@ func (coll *Collection) UpdateOne(
 		Hint:                     args.Hint,
 		Upsert:                   args.Upsert,
 		Let:                      args.Let,
-		RawData:                  args.RawData,
+		Internal:                 args.Internal,
 	}
 
 	return coll.updateOrReplace(ctx, f, update, false, rrOne, true, args.Sort, updateOptions)
@@ -889,7 +891,7 @@ func (coll *Collection) ReplaceOne(
 		Hint:                     args.Hint,
 		Let:                      args.Let,
 		Comment:                  args.Comment,
-		RawData:                  args.RawData,
+		Internal:                 args.Internal,
 	}
 
 	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, args.Sort, updateOptions)
