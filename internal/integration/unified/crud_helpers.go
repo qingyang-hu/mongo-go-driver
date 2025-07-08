@@ -173,6 +173,8 @@ func createListCollectionsArguments(args bson.Raw) (*listCollectionsArguments, e
 			lca.filter = val.Document()
 		case "nameOnly":
 			lca.opts.SetNameOnly(val.Boolean())
+		case "rawData":
+			lca.opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized listCollections option %q", key)
 		}
