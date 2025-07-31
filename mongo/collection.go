@@ -326,7 +326,7 @@ func (coll *Collection) insert(
 	if args.Ordered != nil {
 		op = op.Ordered(*args.Ordered)
 	}
-	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
 		if rawData, ok := rawDataOpt.(bool); ok {
 			op = op.RawData(rawData)
 		}
@@ -382,9 +382,9 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	if args.Comment != nil {
 		imOpts.SetComment(args.Comment)
 	}
-	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
 		imOpts.Opts = append(imOpts.Opts, func(opts *options.InsertManyOptions) error {
-			optionsutil.WithValue(opts.CustomOptions, "rawData", rawDataOpt)
+			optionsutil.WithValue(opts.Internal, "rawData", rawDataOpt)
 
 			return nil
 		})
@@ -548,7 +548,7 @@ func (coll *Collection) delete(
 		}
 		op = op.Let(let)
 	}
-	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
 		if rawData, ok := rawDataOpt.(bool); ok {
 			op = op.RawData(rawData)
 		}
@@ -590,11 +590,11 @@ func (coll *Collection) DeleteOne(
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 	deleteOptions := &options.DeleteManyOptions{
-		Collation:     args.Collation,
-		Comment:       args.Comment,
-		Hint:          args.Hint,
-		Let:           args.Let,
-		CustomOptions: args.CustomOptions,
+		Collation: args.Collation,
+		Comment:   args.Comment,
+		Hint:      args.Hint,
+		Let:       args.Let,
+		Internal:  args.Internal,
 	}
 
 	return coll.delete(ctx, filter, true, rrOne, deleteOptions)
@@ -1061,7 +1061,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		}
 		op.CustomOptions(customOptions)
 	}
-	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
 		if rawData, ok := rawDataOpt.(bool); ok {
 			op = op.RawData(rawData)
 		}
@@ -1154,7 +1154,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		}
 		op.Hint(hintVal)
 	}
-	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
 		if rawData, ok := rawDataOpt.(bool); ok {
 			op = op.RawData(rawData)
 		}
@@ -1240,7 +1240,7 @@ func (coll *Collection) EstimatedDocumentCount(
 		}
 		op = op.Comment(comment)
 	}
-	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
 		if rawData, ok := rawDataOpt.(bool); ok {
 			op = op.RawData(rawData)
 		}
@@ -1334,7 +1334,7 @@ func (coll *Collection) Distinct(
 		}
 		op.Hint(hint)
 	}
-	if rawDataOpt := optionsutil.Value(args.CustomOptions, "rawData"); rawDataOpt != nil {
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
 		if rawData, ok := rawDataOpt.(bool); ok {
 			op = op.RawData(rawData)
 		}
