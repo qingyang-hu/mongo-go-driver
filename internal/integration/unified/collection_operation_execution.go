@@ -241,6 +241,7 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 
 	var keys bson.Raw
 	indexOpts := options.Index()
+	opts := options.CreateIndexes()
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -295,6 +296,8 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 			indexOpts.SetWeights(val.Document())
 		case "wildcardProjection":
 			indexOpts.SetWildcardProjection(val.Document())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized createIndex option %q", key)
 		}
@@ -307,7 +310,8 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 		Keys:    keys,
 		Options: indexOpts,
 	}
-	name, err := coll.Indexes().CreateOne(ctx, model)
+
+	name, err := coll.Indexes().CreateOne(ctx, model, opts)
 	return newValueResult(bson.TypeString, bsoncore.AppendString(nil, name), err), nil
 }
 
@@ -624,6 +628,8 @@ func executeDropIndex(ctx context.Context, operation *operation) (*operationResu
 			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
+		case "rawData":
+			dropIndexOpts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized dropIndex option %q", key)
 		}
@@ -1217,6 +1223,8 @@ func executeListIndexes(ctx context.Context, operation *operation) (*operationRe
 		switch key {
 		case "batchSize":
 			opts.SetBatchSize(val.Int32())
+		case "rawData":
+			opts.SetRawData(val.Boolean())
 		default:
 			return nil, fmt.Errorf("unrecognized listIndexes option: %q", key)
 		}
