@@ -14,6 +14,7 @@ import (
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
@@ -101,8 +102,10 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 		op = op.BatchSize(*args.BatchSize)
 		cursorOpts.BatchSize = *args.BatchSize
 	}
-	if args.RawData != nil {
-		op = op.RawData(*args.RawData)
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 
 	retry := driver.RetryNone
@@ -282,8 +285,10 @@ func (iv IndexView) CreateMany(
 
 		op.CommitQuorum(commitQuorum)
 	}
-	if args.RawData != nil {
-		op = op.RawData(*args.RawData)
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 
 	_, err = processWriteError(op.Execute(ctx))
@@ -419,8 +424,10 @@ func (iv IndexView) drop(ctx context.Context, index any, opts ...options.Lister[
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
 		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE).Authenticator(iv.coll.client.authenticator)
 
-	if args.RawData != nil {
-		op = op.RawData(*args.RawData)
+	if rawDataOpt := optionsutil.Value(args.Internal, "rawData"); rawDataOpt != nil {
+		if rawData, ok := rawDataOpt.(bool); ok {
+			op = op.RawData(rawData)
+		}
 	}
 
 	err = op.Execute(ctx)

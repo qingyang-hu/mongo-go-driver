@@ -174,7 +174,10 @@ func createListCollectionsArguments(args bson.Raw) (*listCollectionsArguments, e
 		case "nameOnly":
 			lca.opts.SetNameOnly(val.Boolean())
 		case "rawData":
-			lca.opts.SetRawData(val.Boolean())
+			err := xoptions.SetInternalListCollectionsOptions(lca.opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized listCollections option %q", key)
 		}

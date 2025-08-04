@@ -7,6 +7,7 @@
 package options
 
 import (
+	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
@@ -19,8 +20,11 @@ type ClientBulkWriteOptions struct {
 	Ordered                  *bool
 	Let                      interface{}
 	WriteConcern             *writeconcern.WriteConcern
-	RawData                  *bool
 	VerboseResults           *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // ClientBulkWriteOptionsBuilder contains options to configure client-level bulk
@@ -102,18 +106,6 @@ func (b *ClientBulkWriteOptionsBuilder) SetLet(let interface{}) *ClientBulkWrite
 func (b *ClientBulkWriteOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *ClientBulkWriteOptionsBuilder {
 	b.Opts = append(b.Opts, func(opts *ClientBulkWriteOptions) error {
 		opts.WriteConcern = wc
-
-		return nil
-	})
-
-	return b
-}
-
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (b *ClientBulkWriteOptionsBuilder) SetRawData(rawData bool) *ClientBulkWriteOptionsBuilder {
-	b.Opts = append(b.Opts, func(opts *ClientBulkWriteOptions) error {
-		opts.RawData = &rawData
 
 		return nil
 	})

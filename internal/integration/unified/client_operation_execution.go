@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/xoptions"
 )
 
 // This file contains helpers to execute client operations.
@@ -236,7 +237,10 @@ func executeClientBulkWrite(ctx context.Context, operation *operation) (*operati
 			}
 			opts.SetWriteConcern(c)
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalClientBulkWriteOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized bulkWrite option %q", key)
 		}

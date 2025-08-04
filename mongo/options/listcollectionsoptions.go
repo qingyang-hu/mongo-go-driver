@@ -6,6 +6,8 @@
 
 package options
 
+import "go.mongodb.org/mongo-driver/v2/internal/optionsutil"
+
 // ListCollectionsOptions represents arguments that can be used to configure a
 // ListCollections operation.
 //
@@ -14,7 +16,10 @@ type ListCollectionsOptions struct {
 	NameOnly              *bool
 	BatchSize             *int32
 	AuthorizedCollections *bool
-	RawData               *bool
+
+	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
+	// release.
+	Internal optionsutil.Options
 }
 
 // ListCollectionsOptionsBuilder contains options to configure list collection
@@ -65,18 +70,6 @@ func (lc *ListCollectionsOptionsBuilder) SetBatchSize(size int32) *ListCollectio
 func (lc *ListCollectionsOptionsBuilder) SetAuthorizedCollections(b bool) *ListCollectionsOptionsBuilder {
 	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
 		opts.AuthorizedCollections = &b
-
-		return nil
-	})
-
-	return lc
-}
-
-// SetRawData sets the value for the RawData field. If true, it allows the CRUD operations to access timeseries
-// collections on the bucket-level. This option is only valid for MongoDB versions >= 9.0. The default value is false.
-func (lc *ListCollectionsOptionsBuilder) SetRawData(rawData bool) *ListCollectionsOptionsBuilder {
-	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
-		opts.RawData = &rawData
 
 		return nil
 	})

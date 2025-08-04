@@ -297,7 +297,10 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 		case "wildcardProjection":
 			indexOpts.SetWildcardProjection(val.Document())
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalCreateIndexesOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized createIndex option %q", key)
 		}
@@ -629,7 +632,10 @@ func executeDropIndex(ctx context.Context, operation *operation) (*operationResu
 			// this error.
 			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "rawData":
-			dropIndexOpts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalDropIndexesOptions(dropIndexOpts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized dropIndex option %q", key)
 		}
@@ -1224,7 +1230,10 @@ func executeListIndexes(ctx context.Context, operation *operation) (*operationRe
 		case "batchSize":
 			opts.SetBatchSize(val.Int32())
 		case "rawData":
-			opts.SetRawData(val.Boolean())
+			err = xoptions.SetInternalListIndexesOptions(opts, key, val.Boolean())
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized listIndexes option: %q", key)
 		}
