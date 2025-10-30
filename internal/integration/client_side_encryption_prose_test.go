@@ -3190,9 +3190,8 @@ func TestCustomAwsCredentialsProse(t *testing.T) {
 				"aws": func(_ context.Context) (options.Credentials, error) {
 					calledCount++
 					return options.Credentials{
-						AccessKeyID:        awsAccessKeyID,
-						SecretAccessKey:    awsSecretAccessKey,
-						ExpirationCallback: func() bool { return false },
+						AccessKeyID:     awsAccessKeyID,
+						SecretAccessKey: awsSecretAccessKey,
 					}, nil
 				},
 			})
@@ -3248,9 +3247,8 @@ func TestCustomAwsCredentialsProse(t *testing.T) {
 				"aws": func(ctx context.Context) (options.Credentials, error) {
 					calledCount++
 					return options.Credentials{
-						AccessKeyID:        awsAccessKeyID,
-						SecretAccessKey:    awsSecretAccessKey,
-						ExpirationCallback: func() bool { return false },
+						AccessKeyID:     awsAccessKeyID,
+						SecretAccessKey: awsSecretAccessKey,
 					}, nil
 				},
 			})
