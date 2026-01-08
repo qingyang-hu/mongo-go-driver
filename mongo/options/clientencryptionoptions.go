@@ -7,6 +7,7 @@
 package options
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
@@ -19,12 +20,28 @@ import (
 //
 // See corresponding setter methods for documentation.
 type ClientEncryptionOptions struct {
-	KeyVaultNamespace   string
-	KmsProviders        map[string]map[string]any
-	TLSConfig           map[string]*tls.Config
-	HTTPClient          *http.Client
-	KeyExpiration       *time.Duration
-	CredentialProviders map[string]CredentialsProvider
+	KeyVaultNamespace     string
+	KmsProviders          map[string]map[string]any
+	TLSConfig             map[string]*tls.Config
+	HTTPClient            *http.Client
+	KeyExpiration         *time.Duration
+	AWSCredentialProvider AWSCredentialsProvider
+}
+
+type AWSCredentialsProvider interface {
+	Retrieve(ctx context.Context) (AWSCredentials, error)
+	Expired() bool
+}
+
+// Credentials represents AWS credentials.
+type AWSCredentials struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	SessionToken    string
+	Source          string
+	CanExpire       bool
+	Expires         time.Time
+	AccountID       string
 }
 
 // ClientEncryptionOptionsBuilder contains options to configure client
@@ -95,10 +112,10 @@ func (c *ClientEncryptionOptionsBuilder) SetKeyExpiration(expiration time.Durati
 	return c
 }
 
-// SetCredentialProviders specifies options for custom credential providers.
-func (c *ClientEncryptionOptionsBuilder) SetCredentialProviders(providers map[string]CredentialsProvider) *ClientEncryptionOptionsBuilder {
+// SetAWSCredentialProvider specifies options for custom AWS credential provider.
+func (c *ClientEncryptionOptionsBuilder) SetAWSCredentialProvider(provider AWSCredentialsProvider) *ClientEncryptionOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
-		opts.CredentialProviders = providers
+		opts.AWSCredentialProvider = provider
 		return nil
 	})
 	return c

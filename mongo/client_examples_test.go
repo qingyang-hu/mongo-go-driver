@@ -353,28 +353,6 @@ func ExampleConnect_aWS() {
 		panic(err)
 	}
 	_ = ecClient
-
-	// Custom AWS credential provider
-
-	// Applications can authenticate using a custom AWS credential provider as
-	// well.
-	credential := options.Credential{
-		AuthMechanism: "MONGODB-AWS",
-		AwsCredentialsProvider: func(_ context.Context) (
-			options.Credentials, error) {
-			return options.Credentials{
-				AccessKeyID:     accessKeyID,
-				SecretAccessKey: secretAccessKey,
-				SessionToken:    sessionToken,
-			}, nil
-		},
-	}
-	awsClient, err := mongo.Connect(
-		options.Client().SetAuth(credential))
-	if err != nil {
-		panic(err)
-	}
-	_ = awsClient
 }
 
 func ExampleConnect_stableAPI() {

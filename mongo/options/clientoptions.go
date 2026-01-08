@@ -116,7 +116,7 @@ type Credential struct {
 	PasswordSet             bool
 	OIDCMachineCallback     OIDCCallback
 	OIDCHumanCallback       OIDCCallback
-	AwsCredentialsProvider  CredentialsProvider
+	AWSSigner               AWSSigner
 }
 
 // OIDCCallback is the type for both Human and Machine Callback flows.
@@ -145,18 +145,8 @@ type IDPInfo struct {
 	RequestScopes []string
 }
 
-// CredentialsProvider is the function type that returns AWS credentials.
-type CredentialsProvider func(context.Context) (Credentials, error)
-
-// Credentials represents AWS credentials.
-type Credentials struct {
-	AccessKeyID     string
-	SecretAccessKey string
-	SessionToken    string
-	Source          string
-	CanExpire       bool
-	Expires         time.Time
-	AccountID       string
+type AWSSigner interface {
+	Sign(ctx context.Context, newRequest func(sessionToken string) *http.Request, body, service, region string, signTime time.Time) error
 }
 
 // BSONOptions are optional BSON marshaling and unmarshaling behaviors.

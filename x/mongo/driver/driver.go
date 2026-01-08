@@ -15,9 +15,9 @@ package driver
 
 import (
 	"context"
+	"net/http"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/internal/aws"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -74,14 +74,18 @@ type Authenticator interface {
 
 // Cred is a user's credential.
 type Cred struct {
-	Source                 string
-	Username               string
-	Password               string
-	PasswordSet            bool
-	Props                  map[string]string
-	OIDCMachineCallback    OIDCCallback
-	OIDCHumanCallback      OIDCCallback
-	AwsCredentialsProvider func(context.Context) (aws.Credentials, error)
+	Source              string
+	Username            string
+	Password            string
+	PasswordSet         bool
+	Props               map[string]string
+	OIDCMachineCallback OIDCCallback
+	OIDCHumanCallback   OIDCCallback
+	AWSSigner           AWSSigner
+}
+
+type AWSSigner interface {
+	Sign(ctx context.Context, newRequest func(sessionToken string) *http.Request, body, service, region string, signTime time.Time) error
 }
 
 // Deployment is implemented by types that can select a server from a deployment.
