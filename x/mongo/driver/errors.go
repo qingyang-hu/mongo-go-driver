@@ -80,6 +80,13 @@ var (
 	ErrRetryableError = "RetryableError"
 )
 
+// LabeledError is an interface for errors with labels.
+type LabeledError interface {
+	error
+	// HasErrorLabel returns true if the error contains the specified label.
+	HasErrorLabel(string) bool
+}
+
 // QueryFailureError is an error representing a command failure as a document.
 type QueryFailureError struct {
 	Message  string

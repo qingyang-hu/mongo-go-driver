@@ -80,7 +80,7 @@ func TestConnection(t *testing.T) {
 			})
 			t.Run("DNS dialer error does not get backpressure labels", func(t *testing.T) {
 				err := &net.DNSError{Err: "no such host"}
-				var want error = ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"}
+				want := ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"}
 				conn := newConnection(address.Address("testaddr"), WithDialer(func(Dialer) Dialer {
 					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
 				}))
@@ -90,8 +90,8 @@ func TestConnection(t *testing.T) {
 				}
 			})
 			t.Run("x509 dialer error does not get backpressure labels", func(t *testing.T) {
-				err := &x509.HostnameError{Host: "testaddr", Certificate: &x509.Certificate{}}
-				var want error = ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"}
+				err := x509.HostnameError{Host: "testaddr", Certificate: &x509.Certificate{}}
+				want := ConnectionError{Wrapped: err, init: true, message: "failed to connect to testaddr:27017"}
 				conn := newConnection(address.Address("testaddr"), WithDialer(func(Dialer) Dialer {
 					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
 				}))
@@ -102,7 +102,7 @@ func TestConnection(t *testing.T) {
 			})
 			t.Run("handshaker error", func(t *testing.T) {
 				err := errors.New("handshaker error")
-				var want error = ConnectionError{Wrapped: err, init: true}
+				want := ConnectionError{Wrapped: err, init: true}
 				conn := newConnection(address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
 						return &testHandshaker{

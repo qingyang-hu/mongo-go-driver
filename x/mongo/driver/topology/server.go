@@ -371,8 +371,8 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 	}
 
 	// Do not clear the pool when backpressure error label applied.
-	var de driver.Error
-	if errors.As(err, &de) && de.HasErrorLabel(driver.ErrSystemOverloadedError) {
+	var labeledError driver.LabeledError
+	if errors.As(err, &labeledError) && labeledError.HasErrorLabel(driver.ErrSystemOverloadedError) {
 		return
 	}
 

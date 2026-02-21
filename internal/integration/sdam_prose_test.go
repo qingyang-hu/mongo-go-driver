@@ -300,7 +300,7 @@ func TestConnectionPoolBackpressure(t *testing.T) {
 		admin := mt.Client.Database("admin")
 		parameters := []struct {
 			name string
-			val  interface{}
+			val  any
 		}{
 			{"ingressConnectionEstablishmentRateLimiterEnabled", true},
 			{"ingressConnectionEstablishmentRatePerSec", 20},
@@ -334,7 +334,7 @@ func TestConnectionPoolBackpressure(t *testing.T) {
 		checkOutFailedEvents := tpm.Events(func(evt *event.PoolEvent) bool {
 			return evt.Type == event.ConnectionCheckOutFailed
 		})
-		assert.True(mt, len(checkOutFailedEvents) >= 10,
+		assert.GreaterOrEqual(mt, len(checkOutFailedEvents), 10,
 			"Expected >= 10 failures, got %d", len(checkOutFailedEvents))
 
 		assert.False(mt, tpm.IsPoolCleared(), "Pool should not have cleared")

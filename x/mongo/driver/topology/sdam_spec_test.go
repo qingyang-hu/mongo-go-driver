@@ -295,18 +295,19 @@ var _ net.Error = (*netErr)(nil)
 func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 	for _, appErr := range errors {
 		var currError error
-		switch appErr.Type {
+		switch typ := appErr.Type; typ {
 		case "command":
 			currError = driver.ExtractErrorFromServerResponse(appErr.Response)
-		case "network":
-			currError = driver.Error{
-				Labels:  []string{driver.NetworkError},
-				Wrapped: ConnectionError{Wrapped: netErr{false}},
+		case "network", "timeout":
+			labels := []string{driver.NetworkError}
+			// Backpressure labels are applied to network/timeout errors during
+			// connection establishment.
+			if appErr.When == "beforeHandshakeCompletes" {
+				labels = append(labels, driver.ErrSystemOverloadedError, driver.ErrRetryableError)
 			}
-		case "timeout":
 			currError = driver.Error{
-				Labels:  []string{driver.NetworkError},
-				Wrapped: ConnectionError{Wrapped: netErr{true}},
+				Labels:  labels,
+				Wrapped: ConnectionError{Wrapped: netErr{typ != "network"}},
 			}
 		default:
 			t.Fatalf("unrecognized error type: %v", appErr.Type)
@@ -329,15 +330,6 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 			pool:       server.pool,
 		}
 		conn := Connection{connection: &innerConn}
-
-		// Backpressure labels are applied to network/timeout errors during
-		// connection establishment.
-		if appErr.When == "beforeHandshakeCompletes" && (appErr.Type == "network" || appErr.Type == "timeout") {
-			if de, ok := currError.(driver.Error); ok {
-				de.Labels = append(de.Labels, driver.ErrSystemOverloadedError, driver.ErrRetryableError)
-				currError = de
-			}
-		}
 
 		switch appErr.When {
 		case "beforeHandshakeCompletes":
